@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <title>Period Class contents</title>
+
+    <!-- Custom styles for this template -->
+<!-- Custom styles for this template -->
+<style>
+    body {
+      padding-top: 2rem;
+  }
+  .table {
+    margin-top: 2rem;
+    table-layout: fixed; /* Keep the table layout fixed */
+    word-wrap: break-word; /* Break words at the end of the line */
+}
+.table td, .table th {
+    vertical-align: middle; /* Align cell contents vertically in the middle */
+}
+
+/* Set column widths according to their proportions */
+.col-date, .col-course{ 
+   width: 15%; 
+   white-space: nowrap;
+   text-align: center;
+}
+.col-detail { width: 20%; }   
+.col-content { width:auto; } 
+
+.photo-item:hover img {
+  filter: grayscale(100%);
+  cursor: pointer;
+}
+  /* Print settings */
+  @media print {
+      .container {
+          max-width: 794px;
+      }
+
+      thead {
+          display: table-header-group;
+          page-break-inside: avoid;
+      }
+  }
+  .editable-text:hover {
+    background-color: #f7f7f7;
+    border: 1px dashed #ccc;
+    cursor: text;
+    
+}
+</style>
+  </head>
+  <body>
+
+  <div class="container mt-4">
+
+        <div class="mb-4">
+          <h1>Period Class contents</h1>
+          <!-- Assuming the 2nd item in the first row is the name -->
+          <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div  class="editable-text">
+                        <h3 class="card-title">이름: {{ data[0][1] }}</h3>
+                        <p class="card-text">수강기간: {{ startDate }} ~ {{ endDate }}</p>
+                    </div>
+                    <div>
+                        <p class="card-text font-weight-bold">담당교사: {{ data[0][5] }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+      </div>
+       <table class="table table-striped table-hover table-bordered mt-4">
+
+       <thead>
+           <tr>
+
+               {% for column in ['수업일자', '과정명', '과정상세', '수업내용'] %}
+               <!-- Create a table header for each column in the data -->
+               <th class="text-center {{ ['col-date', 'col-course', 'col-detail', 'col-level',' col-content'][loop.index0] }}">{{ column }}</th>
+
+               {% endfor %}
+           </tr>
+       </thead>
+      <!-- Start of the data rows -->
+      {% for row in data %}
+      <!-- New row for each piece of data-->
+      <tr contenteditable="true">
+        <!-- Create a new cell for each piece of data-->
+        {% for cell in row %}
+        {# Add a new cell to the current table row #}
+        {# Only add cells excluding the first one (student name) and only if index is less than 6 #}
+        
+        {# Replace newline characters with <br> tags in the cell value #}
+        {% set formatted_cell = cell|replace('\n', '<br>') %}
+        
+        {% if loop.index0 != 1 and loop.index0 <= 3 %}
+            <td {% if loop.index0 == 0 %}class="text-center extra-small-font"{% else %}class="text-center"{% endif %}>{{ formatted_cell }}</td>
+        {% endif %}
+        {% if loop.index0 != 1 and loop.index0 == 6 %}  <!-- 수업내용 -->
+            <td contenteditable="true">{{ formatted_cell | safe }}</td>
+        {% endif %}
+    
+    {% endfor %}
+    </tr>
+
+  {% endfor %}
+        <!-- Close off tags at very end -->
+        </table>
+     <!-- Teacher Feedback -->
+<!-- Teacher Feedback -->
+<div class="teacher-feedback p-4 my-4 border border-info rounded bg-light">
+  <h4 class="text-info mb-3">교사 지도</h4>
+  <div class="editable-text">
+  {% for row in data %}
+      <!-- Assuming the 7th item in each row is the teacher's feedback -->
+
+        <p class="mb-2">
+            <strong>{{ row[0] }}:</strong> {{ row[7]|replace('\n', '<br>')|safe }} 
+        </p>
+
+  {% endfor %}
+      </div>
+</div>
+
+<style>
+.teacher-feedback {
+    page-break-inside: avoid;
+}
+</style>
+
+    <!-- Optional JavaScript; choose one of the two! -->
+
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+  </body>
+  <div class="row" id="photo-container">
+    {% set max_iterations = (photos|length / data|length)|int %}  {# 원하는 반복 횟수를 설정 #}
+    {% for photo in photos %}
+      {% if loop.index0 < max_iterations %}
+        <div class="col-md-4 photo-item">
+          <div class="card mb-4 rounded">
+            <img src="{{ url_for('photos', filename=photo) }}" class="card-img-top" style="max-width: 400px; max-height: 400px; object-fit: contain;">
+          </div>
+        </div>
+      {% endif %}
+    {% endfor %}
+  </div>
+  <button id="printButton" class="btn btn-primary">출력</button>
+  <br>
+  <div style='text-align:center;margin-top:-30px;' >
+    <h4>새로움코딩학원</h4>
+    <h5>발급일자 : 현재일자</h5>
+  </div>
+ <script type='text/javascript'>
+    document.addEventListener("DOMContentLoaded", function() {
+      const textAreas = document.querySelectorAll(".editable-text");
+      textAreas.forEach(area => {
+          area.addEventListener("click", function(e) {
+              e.currentTarget.setAttribute("contenteditable", "true");
+              e.currentTarget.focus();
+          });
+          area.addEventListener("blur", function(e) {
+              e.currentTarget.removeAttribute("contenteditable");
+          });
+      });
+  });
+    document.addEventListener("DOMContentLoaded", function() {
+      const photoItems = document.querySelectorAll(".photo-item");
+
+      photoItems.forEach(item => {
+          item.addEventListener("click", function() {
+              // 숨길 사진을 찾아서 숨깁니다.
+              item.style.display = "none";
+
+              // 숨긴 사진의 높이를 가져와서 다음 사진을 이 위치로 이동시킵니다.
+              const hiddenPhotoHeight = item.offsetHeight;
+              photoItems.forEach(nextItem => {
+                  if (nextItem.offsetTop > item.offsetTop) {
+                      nextItem.style.transform = `translateY(-${hiddenPhotoHeight}px)`;
+                  }
+              });
+          });
+      });
+  });
+      // 페이지가 로드된 후에 엔드포인트를 호출하도록 JavaScript를 사용합니다.
+      window.addEventListener('load', function() {
+        // 엔드포인트 호출
+        fetch('/delete_all_photos', {
+            method: 'GET'
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('Photos deleted successfully');
+            } else {
+                console.error('Error deleting photos');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+    });
+    document.querySelector('h5').innerHTML = `발급일자 : ${new Date().toLocaleDateString()}`;
+    document.addEventListener("DOMContentLoaded", function() {
+        const printButton = document.getElementById("printButton");
+        if (printButton) {
+            printButton.addEventListener("click", function() {
+                printDiv();
+            });
+        }
+    });     
+    function printDiv() {
+        // Hide the button during printing
+        var printButton = document.getElementById("printButton");
+        if (printButton) {
+            printButton.style.display = "none";
+        }
+    
+        // Trigger the print dialog
+        window.print();
+    
+        // Restore the visibility of the button after printing
+        if (printButton) {
+            printButton.style.display = "block";
+        }
+    }        
+</script>
+</html>

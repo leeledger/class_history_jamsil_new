@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>한번에 기록</title>
+    
+    <!-- CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.24/css/dataTables.bootstrap4.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    
+    <style>
+        .date-cell { cursor: pointer; }
+        .sidebar {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        padding: 48px,1rem;
+        background-color: #f8f9fa;
+      }
+
+      .sidebar-sticky {
+        position: -webkit-sticky; /* For Safari */
+        position: sticky; 
+        top:48px; 
+      }
+      .table td {
+        max-width: 150px; /* Or any other width according to your requirement */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .nav-link.active {
+          font-weight:bold; 
+      }
+      .hover {
+        background-color: lightblue !important;
+      }
+    /* Add this to make the navbar vertical */
+    @media (min-width:768px){
+      .sidebar{
+        width:auto !important;
+      }
+    }        
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+      <div class="row">
+        <nav id ="sidebarMenu" class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse">
+          <div class="sidebar-sticky pt-3">
+            <ul class= "nav flex-column">    
+              <li>
+                <a class = "navbar-brand" href="/">홈으로</a>
+              </li>
+         
+              <li class="{% if 'student_list' in currentPage %}active{% endif %}">
+                  <a class = "navbar-brand" href="student_list.html">학생 정보  </a>
+              </li>
+              
+              <li class="{% if 'subject_list' in currentPage %}active{% endif %}">
+                  <a class = "navbar-brand" href="subject_list.html">과정 정보  </a>
+              </li>
+              
+              <li class="{% if 'subject_list_detail' in currentPage %}active{% endif %}">
+                  <a class = "navbar-brand" href="subject_list_detail.html">과정 상세  </a>
+              </li>
+              
+              <li class="{% if 'lesson_list' in currentPage %}active{% endif %}">
+                  <a class = "navbar-brand" href="lesson_list.html">수업 리스트</a>
+              </li>
+              <li class="{% if 'lesson_list' in currentPage %}active{% endif %}">
+                <a class = "navbar-brand" href="lesson_report.html">수업 레포트</a>
+              </li>
+              <li class="{% if 'lesson_list' in currentPage %}active{% endif %}">
+                <a class = "navbar-brand" href="auto_lessons.html">한번에 기록</a>
+              </li>
+            </ul> 
+          </div> 
+        </nav>
+    </div>
+  </div>      
+    <div class="container mt-5">
+        <h1 class="mb-4">한번에 기록</h1>
+        
+        <!-- 학생 선택 영역 -->
+        <div class="row mb-3">
+            <div class="col-md-4">
+                <div style="flex: 2;">
+                    <label for='studentId'>학생:</label>
+                    <input list='students' id='studentId' name='student_id' class='form-control'>
+                    <datalist id='students'></datalist>
+                    학년: <span id='gradeLevel'></span><br/>
+                </div>
+            </div>
+        </div>
+
+        <!-- 테이블 -->
+        <table id="subjectdetailTable" class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th class="text-center"><input type="checkbox" id="selectAll"></th>
+                    <th class="text-center">날짜</th>
+                    <th class="text-center">ID</th>
+                    <th class="text-center">과정</th>
+                    <th class="text-center">상세 설명</th>
+                    <th class="text-center">레벨</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for subjectdetail in subjectdetails %}
+                <tr>
+                    <td class="text-center"><input type="checkbox" class="rowCheckbox"></td>
+                    <td class="date-cell">{{ current_date }}</td>
+                    <td>{{ subjectdetail.subject_detail_id }}</td>
+                    <td>{{ get_subject_by_id(subjectdetail.subject_id).name if subjectdetail.subject_id else 'N/A' }}</td>
+                    <td>{{ subjectdetail.detail_script }}</td>
+                    <td>{{ subjectdetail.level }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- 버튼 영역 -->
+        <div class="row mt-3">
+            <div class="col">
+                <button id="insertSelectedBtn" class="btn btn-primary">선택 항목 등록</button>
+                <a href="/" class="btn btn-secondary">홈으로</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스크립트 -->
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.10.24/js/dataTables.bootstrap4.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ko.js"></script>
+
+    <script>
+    $(document).ready(function () {
+        // DataTable 초기화
+        const table = $('#subjectdetailTable').DataTable({
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "전체"]],
+            order: [[2, 'asc']],
+            language: {
+                url: '//cdn.datatables.net/plug-ins/1.10.24/i18n/Korean.json'
+            },
+            columnDefs: [
+                {
+                    targets: 0,
+                    orderable: false
+                }
+            ]
+        });
+
+        // 학생 목록 가져오기
+        fetch('/api/students')
+            .then(response => response.json())
+            .then(data => {
+                const datalist = document.getElementById('students');
+                data.forEach(student => {
+                    const option = document.createElement('option');
+                    option.value = student.name;
+                    option.dataset.id = student.id;
+                    option.dataset.grade = student.grade_level;
+                    datalist.appendChild(option);
+                });
+            });
+
+        // 학생 선택 시 이벤트
+        $('#studentId').on('input', function() {
+            const selectedName = $(this).val();
+            const option = document.querySelector(`#students option[value="${selectedName}"]`);
+            
+            if (option) {
+                $('#gradeLevel').text(option.dataset.grade);
+                $(this).attr('data-student-id', option.dataset.id);
+            } else {
+                $('#gradeLevel').text('');
+                $(this).removeAttr('data-student-id');
+            }
+        });
+
+        // 날짜 셀 클릭 이벤트
+        $('#subjectdetailTable').on('click', '.date-cell', function(e) {
+            const cell = $(this);
+            const currentDate = cell.text().trim();
+            
+            // 이미 input이 있으면 리턴
+            if (cell.find('input').length > 0) return;
+
+            // input 생성 및 설정
+            const input = $('<input type="text" class="form-control form-control-sm">')
+                .val(currentDate);
+            
+            cell.html(input);
+
+            // flatpickr 초기화
+            const fp = flatpickr(input[0], {
+                dateFormat: "Y-m-d",
+                locale: "ko",
+                defaultDate: currentDate,
+                onClose: function(selectedDates, dateStr) {
+                    cell.html(dateStr);
+                }
+            });
+
+            // 즉시 달력 표시
+            fp.open();
+
+            // 외부 클릭 처리
+            function handleClickOutside(event) {
+                if (!cell.has(event.target).length && 
+                    !$(event.target).closest('.flatpickr-calendar').length) {
+                    if (input.val()) {
+                        cell.html(input.val());
+                    } else {
+                        cell.html(currentDate);
+                    }
+                    $(document).off('click', handleClickOutside);
+                }
+            }
+
+            setTimeout(() => {
+                $(document).on('click', handleClickOutside);
+            }, 100);
+        });
+
+        // 전체 선택 체크박스
+        $('#selectAll').on('click', function() {
+            const isChecked = $(this).is(':checked');
+            table.$('input.rowCheckbox').prop('checked', isChecked);
+        });
+
+        // 선택 항목 등록 버튼 클릭 이벤트
+        $('#insertSelectedBtn').on('click', function() {
+            const selectedName = $('#studentId').val();
+            const option = document.querySelector(`#students option[value="${selectedName}"]`);
+            
+            if (!selectedName || !option) {
+                alert('학생을 선택해주세요.');
+                return;
+            }
+
+            const studentId = parseInt(option.dataset.id);
+            
+            if (!studentId) {
+                alert('학생을 선택해주세요.');
+                return;
+            }
+
+            const selectedRows = [];
+            $('.rowCheckbox:checked').each(function() {
+                const row = $(this).closest('tr');
+                selectedRows.push({
+                    subject_detail_id: parseInt(row.find('td:eq(2)').text().trim()),
+                    date: row.find('td:eq(1)').text().trim()
+                });
+            });
+
+            if (selectedRows.length === 0) {
+                alert('등록할 항목을 선택해주세요.');
+                return;
+            }
+
+            // 서버로 데이터 전송
+            fetch('/api/insert_lessons', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    student_id: studentId,
+                    lessons: selectedRows
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    alert('선택한 항목이 성공적으로 등록되었습니다.');
+                    location.reload();
+                } else {
+                    alert('등록 중 오류가 발생했습니다: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('등록 중 오류가 발생했습니다.');
+            });
+        });
+    });
+    </script>
+</body>
+</html>
